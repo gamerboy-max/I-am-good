@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>StillCam - AR Photo Gallery</title>
+  <style>
+    :root {
+      --bg: #f7f7f4;
+      --panel: #fff;
+      --ink: #141414;
+      --muted: #706d68;
+      --line: #dedbd4;
+      --accent: #e34b2f;
+      --green: #168a70;
+      --shadow: 0 18px 50px rgba(16, 24, 40, .14);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { border: 0; color: inherit; background: transparent; cursor: pointer; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 245px minmax(0, 1fr) 310px;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, .72);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      margin-bottom: 36px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 31px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .nav {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav button {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      min-height: 48px;
+      padding: 0 12px;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .nav button:hover, .nav button.active { background: #efeee9; }
+    .nav svg, .primary svg, .mobile-bar svg { width: 24px; height: 24px; stroke-width: 2; }
+
+    .profile-mini {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      bottom: 26px;
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      font-weight: 800;
+    }
+
+    .profile-mini strong, .profile-mini span {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .profile-mini span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    main {
+      padding: 36px clamp(18px, 4vw, 56px) 48px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(27px, 4vw, 44px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .primary {
+      display: inline-grid;
+      grid-template-columns: 22px auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 8px;
+      color: #fff;
+      background: var(--ink);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, .16);
+      white-space: nowrap;
+    }
+
+    .gallery-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .gallery-head h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .gallery-empty {
+      display: grid;
+      place-items: center;
+      min-height: 420px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .gallery-empty svg {
+      width: 44px;
+      height: 44px;
+      margin-bottom: 12px;
+      color: #99958d;
+    }
+
+    .gallery-panel.has-photos .gallery-empty { display: none; }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+      padding-top: 18px;
+    }
+
+    .gallery-photo {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #e9e6df;
+      box-shadow: 0 0 0 1px rgba(20, 20, 20, .06);
+    }
+
+    .gallery-photo img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .gallery-photo span {
+      position: absolute;
+      left: 9px;
+      bottom: 9px;
+      max-width: calc(100% - 18px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 6px 8px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(0, 0, 0, .58);
+      font-size: 12px;
+    }
+
+    .right-rail {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 36px 24px;
+      border-left: 1px solid var(--line);
+      background: rgba(255, 255, 255, .48);
+    }
+
+    .status-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 16px 32px rgba(16, 24, 40, .08);
+    }
+
+    .status-card h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .status-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      background: rgba(20, 20, 20, .72);
+      z-index: 50;
+    }
+
+    .modal.open { display: flex; }
+
+    .name-modal {
+      z-index: 100;
+      background: rgba(247, 247, 244, .96);
+    }
+
+    .name-card {
+      width: min(420px, 100%);
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .name-card h2 {
+      margin: 0 0 18px;
+      font-size: 26px;
+      letter-spacing: 0;
+    }
+
+    .name-field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .name-field input {
+      width: 100%;
+      min-height: 46px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .name-field input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(227, 75, 47, .16);
+    }
+
+    .studio {
+      width: min(1240px, 100%);
+      min-height: calc(100vh - 16px);
+      max-height: calc(100vh - 16px);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #101010;
+      box-shadow: var(--shadow);
+    }
+
+    .stage {
+      position: relative;
+      min-height: calc(100vh - 16px);
+      overflow: hidden;
+      background: #000;
+    }
+
+    video, canvas.capture {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    canvas.capture {
+      display: none;
+      z-index: 3;
+    }
+
+    canvas.capture.show {
+      display: block;
+    }
+
+    .mask {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 210px;
+      height: 210px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      filter: drop-shadow(0 18px 28px rgba(0, 0, 0, .42));
+      font-size: 152px;
+      line-height: 1;
+      will-change: transform, left, top, width, height;
+    }
+
+    .mask.visible { display: flex; }
+
+    .studio-top {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      z-index: 4;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, .5);
+      backdrop-filter: blur(12px);
+      font-size: 13px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #30d158;
+    }
+
+    .close {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(0, 0, 0, .52);
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .studio-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      place-items: center;
+      padding: 22px;
+      background: linear-gradient(to top, rgba(0, 0, 0, .68), transparent);
+      z-index: 4;
+    }
+
+    .shutter {
+      display: grid;
+      place-items: center;
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: #fff;
+      color: #111;
+      box-shadow: inset 0 0 0 7px #fff, inset 0 0 0 12px rgba(0, 0, 0, .22), 0 10px 28px rgba(0, 0, 0, .35);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .studio-side {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      padding: 18px;
+      color: #fff;
+      background: #171717;
+    }
+
+    .studio-side h2 {
+      margin: 0 0 6px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    .studio-side p {
+      margin: 0 0 14px;
+      color: #b9b6b0;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .filter-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0 4px 2px 0;
+    }
+
+    .filter-option {
+      display: grid;
+      place-items: center;
+      gap: 6px;
+      min-height: 78px;
+      padding: 9px 6px;
+      border: 1px solid #343434;
+      border-radius: 8px;
+      background: #242424;
+      color: #fff;
+    }
+
+    .filter-option.active {
+      border-color: #ff755f;
+      box-shadow: inset 0 0 0 1px #ff755f;
+    }
+
+    .filter-preview {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #101010;
+      font-size: 28px;
+    }
+
+    .filter-name {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #b9b6b0;
+      font-size: 12px;
+    }
+
+    .viewer-card {
+      position: relative;
+      width: min(560px, 100%);
+      overflow: hidden;
+      border-radius: 8px;
+      background: #111;
+      box-shadow: var(--shadow);
+    }
+
+    .viewer-card img {
+      display: block;
+      width: 100%;
+      max-height: calc(100vh - 160px);
+      object-fit: contain;
+      background: #000;
+    }
+
+    .viewer-card .close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 2;
+    }
+
+    .viewer-meta {
+      margin: 0;
+      padding: 12px 16px;
+      color: #fff;
+      background: #111;
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 120;
+      transform: translateX(-50%) translateY(16px);
+      opacity: 0;
+      pointer-events: none;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(20, 20, 20, .9);
+      transition: .2s ease;
+      font-size: 14px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .mobile-bar { display: none; }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 86px minmax(0, 1fr); }
+      .sidebar { padding: 22px 14px; }
+      .brand { font-size: 24px; text-align: center; }
+      .nav span.label, .profile-mini div:not(.avatar) { display: none; }
+      .nav button { grid-template-columns: 1fr; justify-items: center; padding: 0; }
+      .profile-mini { left: 22px; right: auto; }
+      .right-rail { display: none; }
+    }
+
+    @media (max-width: 720px) {
+      .app { display: block; }
+      .sidebar { display: none; }
+      main { padding: 20px 14px 86px; }
+      .topbar { align-items: flex-start; }
+      .primary { min-width: 44px; padding: 0 12px; grid-template-columns: 20px; }
+      .primary span { display: none; }
+      .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .gallery-empty { min-height: 330px; }
+      .modal { padding: 0; }
+      .studio { grid-template-columns: 1fr; min-height: 100vh; height: 100vh; max-height: none; border-radius: 0; }
+      .stage { min-height: 68vh; height: 68vh; }
+      .shutter { width: 96px; height: 96px; }
+      .filter-strip { grid-template-columns: repeat(4, minmax(68px, 1fr)); overflow-x: auto; }
+      .mobile-bar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        min-height: 62px;
+        border-top: 1px solid var(--line);
+        background: rgba(255, 255, 255, .9);
+        backdrop-filter: blur(16px);
+      }
+      .mobile-bar button { display: grid; place-items: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <div class="brand">StillCam</div>
+      <nav class="nav">
+        <button class="active gallery-link" aria-label="Open gallery">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></svg>
+          <span class="label">Gallery</span>
+        </button>
+        <button class="open-studio" aria-label="Open camera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 5 16 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3l1.5-3z"/><circle cx="12" cy="14" r="3.5"/></svg>
+          <span class="label">Camera</span>
+        </button>
+      </nav>
+      <div class="profile-mini">
+        <div class="avatar" id="profileAvatar">A</div>
+        <div><strong id="profileName">Arth</strong><span id="profileHandle">@arth.still</span></div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <h1 id="welcomeTitle">Good afternoon, Arth.</h1>
+        <button class="primary open-studio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 5 16 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3l1.5-3z"/><circle cx="12" cy="14" r="3.5"/></svg>
+          <span>Open camera</span>
+        </button>
+      </div>
+
+      <section class="gallery-panel" id="galleryPanel" aria-label="Photo gallery">
+        <div class="gallery-head">
+          <h2>Your gallery</h2>
+          <button class="gallery-link" aria-label="Refresh gallery">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4v6h6"/><path d="M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14.7-3.8L4 10"/><path d="M4 14a8 8 0 0 0 14.7 3.8L20 14"/></svg>
+          </button>
+        </div>
+        <div class="gallery-empty">
+          <div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-4-4-5 5-2-2-7 7"/></svg>
+            <div>Your photos will appear here.</div>
+          </div>
+        </div>
+        <div class="photo-grid" id="photoGrid"></div>
+      </section>
+    </main>
+
+    <aside class="right-rail">
+      <div class="status-card">
+        <h2 id="railTitle">Only Arth's photos</h2>
+        <p id="railCopy">Every captured photo stays in your gallery in this browser. No stories, no chat, no extra posts.</p>
+      </div>
+    </aside>
+  </div>
+
+  <div class="modal name-modal open" id="nameModal" role="dialog" aria-modal="true" aria-label="Name setup">
+    <form class="name-card" id="nameForm">
+      <h2>What is your name?</h2>
+      <label class="name-field" for="nameInput">
+        <span>Name</span>
+        <input id="nameInput" name="name" type="text" maxlength="28" autocomplete="name" placeholder="Type your name" required />
+      </label>
+      <button class="primary" type="submit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 12 4 4L19 6"/></svg>
+        <span>OK</span>
+      </button>
+    </form>
+  </div>
+
+  <div class="mobile-bar" aria-label="Mobile navigation">
+    <button class="gallery-link" aria-label="Open gallery">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m21 15-4-4-5 5-2-2-7 7"/></svg>
+    </button>
+    <button class="open-studio" aria-label="Open camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14.5 5 16 8h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3l1.5-3z"/><circle cx="12" cy="14" r="3.5"/></svg>
+    </button>
+    <button class="gallery-link" aria-label="Show saved photos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/><path d="M8 13h3"/><path d="M8 16h8"/></svg>
+    </button>
+  </div>
+
+  <div class="modal" id="studioModal" role="dialog" aria-modal="true" aria-label="AR camera">
+    <div class="studio">
+      <div class="stage" id="stage">
+        <video id="camera" autoplay playsinline muted></video>
+        <canvas class="capture" id="captureCanvas"></canvas>
+        <div class="mask" id="faceMask">😎</div>
+        <div class="studio-top">
+          <span class="pill"><span class="dot"></span><span id="liveLabel">Camera ready</span></span>
+          <button class="close" id="closeStudio" aria-label="Close camera">×</button>
+        </div>
+        <div class="studio-bottom">
+          <button class="shutter" id="shutter" aria-label="Take photo"><span id="shutterText">Photo</span></button>
+        </div>
+      </div>
+      <aside class="studio-side">
+        <h2>Face filters</h2>
+        <p id="trackingHint">Choose a mask. It scales to your face and follows your movement.</p>
+        <div class="filter-strip" id="filters"></div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal" id="galleryViewer" role="dialog" aria-modal="true" aria-label="Photo preview">
+    <div class="viewer-card">
+      <button class="close" id="closeViewer" aria-label="Close preview">×</button>
+      <img id="viewerImage" alt="Selected photo from the gallery" />
+      <p class="viewer-meta" id="viewerMeta"></p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module">
+    import { FaceLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    const filters = [
+      ["natural", "○", "Natural"], ["cool", "😎", "Cool"], ["angel", "😇", "Angel"],
+      ["alien", "👽", "Alien"], ["clown", "🤡", "Clown"], ["robot", "🤖", "Robot"],
+      ["ghost", "👻", "Ghost"], ["skull", "💀", "Skull"], ["cowboy", "🤠", "Cowboy"],
+      ["party", "🥳", "Party"], ["star", "🤩", "Star"], ["nerd", "🤓", "Nerd"],
+      ["monocle", "🧐", "Monocle"], ["sleepy", "😴", "Sleepy"], ["shocked", "😱", "Shocked"],
+      ["fire", "🔥", "Fire"], ["heart", "😍", "Heart"], ["halo", "🌟", "Halo"],
+      ["snow", "❄️", "Snow"], ["moon", "🌙", "Moon"], ["sun", "☀️", "Sun"],
+      ["crown", "👑", "Crown"], ["ninja", "🥷", "Ninja"], ["wizard", "🧙", "Wizard"],
+      ["gamer", "🎮", "Gamer"]
+    ];
+
+    const modal = document.getElementById("studioModal");
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("captureCanvas");
+    const stage = document.getElementById("stage");
+    const mask = document.getElementById("faceMask");
+    const liveLabel = document.getElementById("liveLabel");
+    const trackingHint = document.getElementById("trackingHint");
+    const shutter = document.getElementById("shutter");
+    const shutterText = document.getElementById("shutterText");
+    const closeStudioButton = document.getElementById("closeStudio");
+    const filterHost = document.getElementById("filters");
+    const photoGrid = document.getElementById("photoGrid");
+    const galleryPanel = document.getElementById("galleryPanel");
+    const toast = document.getElementById("toast");
+    const galleryViewer = document.getElementById("galleryViewer");
+    const viewerImage = document.getElementById("viewerImage");
+    const viewerMeta = document.getElementById("viewerMeta");
+    const closeViewer = document.getElementById("closeViewer");
+    const nameModal = document.getElementById("nameModal");
+    const nameForm = document.getElementById("nameForm");
+    const nameInput = document.getElementById("nameInput");
+    const profileAvatar = document.getElementById("profileAvatar");
+    const profileName = document.getElementById("profileName");
+    const profileHandle = document.getElementById("profileHandle");
+    const welcomeTitle = document.getElementById("welcomeTitle");
+    const railTitle = document.getElementById("railTitle");
+    const railCopy = document.getElementById("railCopy");
+
+    const visitorNameKey = "stillcam-visitor-name";
+    const modelUrl = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task";
+    const emojiMap = Object.fromEntries(filters.map(([id, emoji]) => [id, emoji]));
+    let stream;
+    let landmarker;
+    let cameraAvailable = false;
+    let photoData = "";
+    let faceState = null;
+    let galleryPhotos = [];
+    let currentName = "Arth";
+    let galleryStorageKey = "stillcam-gallery-arth";
+    let rafId = 0;
+
+    filterHost.innerHTML = filters.map(([id, emoji, name], index) => (
+      `<button class="filter-option${index === 0 ? " active" : ""}" data-filter="${id}"><span class="filter-preview">${emoji}</span><span class="filter-name">${name}</span></button>`
+    )).join("");
+
+    function cleanName(value) {
+      return value.trim().replace(/\s+/g, " ").slice(0, 28);
+    }
+
+    function keyFromName(name) {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "guest";
+      return `stillcam-gallery-${slug}`;
+    }
+
+    function handleFromName(name) {
+      const handle = name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 18) || "guest";
+      return `@${handle}.still`;
+    }
+
+    function greeting() {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning";
+      if (hour < 17) return "Good afternoon";
+      return "Good evening";
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function setVisitorName(name) {
+      currentName = cleanName(name) || "Guest";
+      galleryStorageKey = keyFromName(currentName);
+      profileName.textContent = currentName;
+      profileHandle.textContent = handleFromName(currentName);
+      profileAvatar.textContent = currentName[0].toUpperCase();
+      welcomeTitle.textContent = `${greeting()}, ${currentName}.`;
+      railTitle.textContent = `Only ${currentName}'s photos`;
+      railCopy.textContent = `Every captured photo stays in ${currentName}'s gallery in this browser. No stories, no chat, no extra posts.`;
+      localStorage.setItem(visitorNameKey, currentName);
+      loadGallery();
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+
+    function loadGallery() {
+      try {
+        galleryPhotos = JSON.parse(localStorage.getItem(galleryStorageKey) || "[]");
+      } catch {
+        galleryPhotos = [];
+      }
+      renderGallery();
+    }
+
+    function saveGallery() {
+      localStorage.setItem(galleryStorageKey, JSON.stringify(galleryPhotos));
+    }
+
+    function renderGallery() {
+      photoGrid.innerHTML = galleryPhotos.map((photo, index) => (
+        `<button class="gallery-photo" data-index="${index}" aria-label="Open photo ${index + 1}"><img src="${photo.src}" alt="${currentName}'s photo with ${photo.effect} emoji mask"><span>${photo.emoji} ${photo.effect}</span></button>`
+      )).join("");
+      galleryPanel.classList.toggle("has-photos", galleryPhotos.length > 0);
+    }
+
+    function showGallery() {
+      galleryPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function openViewer(photo) {
+      if (!photo) return;
+      viewerImage.src = photo.src;
+      viewerMeta.textContent = `${photo.emoji} ${photo.effect}`;
+      galleryViewer.classList.add("open");
+    }
+
+    function closeViewerModal() {
+      galleryViewer.classList.remove("open");
+      viewerImage.removeAttribute("src");
+    }
+
+    async function setupFaceTracking() {
+      if (landmarker) return;
+      try {
+        const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+        landmarker = await FaceLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: modelUrl, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numFaces: 1
+        });
+      } catch {
+        trackingHint.textContent = "Face tracking needs internet access for the model. Filters still work in the center.";
+      }
+    }
+
+    async function startCamera() {
+      if (stream) return;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        video.srcObject = stream;
+        cameraAvailable = true;
+        await video.play();
+        await setupFaceTracking();
+        liveLabel.textContent = "Camera live";
+        trackFace();
+      } catch {
+        cameraAvailable = false;
+        liveLabel.textContent = "Camera paused";
+        trackingHint.textContent = "Allow camera access to take and save a photo.";
+        showToast("Allow camera access to add a photo to your gallery.");
+      }
+    }
+
+    function stopCamera() {
+      cancelAnimationFrame(rafId);
+      if (stream) stream.getTracks().forEach(track => track.stop());
+      stream = undefined;
+      cameraAvailable = false;
+      video.srcObject = null;
+    }
+
+    function activeFilter() {
+      return document.querySelector(".filter-option.active")?.dataset.filter || "natural";
+    }
+
+    function updateMaskFromFace(landmarks) {
+      const selected = activeFilter();
+      if (selected === "natural") {
+        mask.classList.remove("visible");
+        return;
+      }
+
+      mask.textContent = emojiMap[selected] || "😎";
+      let left = 50;
+      let top = 50;
+      let width = Math.min(stage.clientWidth, stage.clientHeight) * .38;
+
+      if (landmarks?.length) {
+        const cheekLeft = landmarks[234] || landmarks[127];
+        const cheekRight = landmarks[454] || landmarks[356];
+        const forehead = landmarks[10];
+        const chin = landmarks[152];
+        const nose = landmarks[1];
+        const mirroredLeft = 1 - (cheekLeft?.x ?? .62);
+        const mirroredRight = 1 - (cheekRight?.x ?? .38);
+        const centerX = nose ? 1 - nose.x : (mirroredLeft + mirroredRight) / 2;
+        const centerY = nose ? nose.y : .5;
+        const faceWidth = Math.abs(mirroredRight - mirroredLeft) * stage.clientWidth;
+        const faceHeight = forehead && chin ? Math.abs(chin.y - forehead.y) * stage.clientHeight : faceWidth * 1.25;
+        left = centerX * 100;
+        top = (centerY - .015) * 100;
+        width = clamp(Math.max(faceWidth * 1.28, faceHeight * .9), 118, Math.min(stage.clientWidth, stage.clientHeight) * .76);
+      }
+
+      faceState = { left, top, width, emoji: mask.textContent };
+      mask.style.left = `${left}%`;
+      mask.style.top = `${top}%`;
+      mask.style.width = `${width}px`;
+      mask.style.height = `${width}px`;
+      mask.style.fontSize = `${Math.round(width * .98)}px`;
+      mask.classList.add("visible");
+    }
+
+    function trackFace() {
+      if (!cameraAvailable || video.readyState < 2) {
+        rafId = requestAnimationFrame(trackFace);
+        return;
+      }
+      if (landmarker) {
+        const result = landmarker.detectForVideo(video, performance.now());
+        updateMaskFromFace(result.faceLandmarks?.[0]);
+      } else {
+        updateMaskFromFace(null);
+      }
+      rafId = requestAnimationFrame(trackFace);
+    }
+
+    function drawCapture() {
+      const width = video.videoWidth || 960;
+      const height = video.videoHeight || 1200;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.save();
+      ctx.translate(width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, width, height);
+      ctx.restore();
+
+      const selected = activeFilter();
+      const emoji = emojiMap[selected];
+      if (selected !== "natural" && emoji) {
+        const stageMin = Math.min(stage.clientWidth || width, stage.clientHeight || height);
+        const state = faceState || { left: 50, top: 50, width: stageMin * .38 };
+        const scaleX = width / Math.max(1, stage.clientWidth);
+        const scaleY = height / Math.max(1, stage.clientHeight);
+        const size = clamp(state.width * Math.max(scaleX, scaleY), 118, Math.min(width, height) * .76);
+        ctx.font = `${Math.round(size * .98)}px serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(0,0,0,.35)";
+        ctx.shadowBlur = size * .12;
+        ctx.fillText(emoji, (state.left / 100) * width, (state.top / 100) * height);
+      }
+
+      photoData = canvas.toDataURL("image/jpeg", .92);
+      canvas.classList.add("show");
+      shutter.setAttribute("aria-label", "Save photo to gallery");
+      shutterText.textContent = "Save";
+      liveLabel.textContent = "Tap again to save";
+    }
+
+    function publishPhoto() {
+      const button = document.querySelector(".filter-option.active");
+      const effect = button?.querySelector(".filter-name")?.textContent || "Natural";
+      galleryPhotos.unshift({ src: photoData, effect, emoji: emojiMap[button?.dataset.filter] || "○" });
+      saveGallery();
+      renderGallery();
+      closeStudio();
+      showGallery();
+      showToast(`Saved to ${currentName}'s gallery.`);
+    }
+
+    function openStudio() {
+      photoData = "";
+      canvas.classList.remove("show");
+      shutter.setAttribute("aria-label", "Take photo");
+      shutterText.textContent = "Photo";
+      modal.classList.add("open");
+      startCamera();
+    }
+
+    function closeStudio() {
+      modal.classList.remove("open");
+      canvas.classList.remove("show");
+      shutterText.textContent = "Photo";
+      mask.classList.remove("visible");
+      photoData = "";
+      stopCamera();
+    }
+
+    nameInput.value = localStorage.getItem(visitorNameKey) || "";
+    window.setTimeout(() => nameInput.focus(), 100);
+    nameForm.addEventListener("submit", event => {
+      event.preventDefault();
+      setVisitorName(nameInput.value);
+      nameModal.classList.remove("open");
+      showToast(`Hi, ${currentName}.`);
+    });
+
+    document.querySelectorAll(".open-studio").forEach(button => button.addEventListener("click", openStudio));
+    document.querySelectorAll(".gallery-link").forEach(button => button.addEventListener("click", showGallery));
+    closeStudioButton.addEventListener("click", closeStudio);
+    closeViewer.addEventListener("click", closeViewerModal);
+    galleryViewer.addEventListener("click", event => {
+      if (event.target === galleryViewer) closeViewerModal();
+    });
+    photoGrid.addEventListener("click", event => {
+      const card = event.target.closest(".gallery-photo");
+      if (card) openViewer(galleryPhotos[Number(card.dataset.index)]);
+    });
+
+    filterHost.addEventListener("click", event => {
+      const option = event.target.closest(".filter-option");
+      if (!option) return;
+      document.querySelectorAll(".filter-option").forEach(button => button.classList.remove("active"));
+      option.classList.add("active");
+      updateMaskFromFace(null);
+    });
+
+    shutter.addEventListener("click", () => {
+      if (!cameraAvailable) {
+        showToast("Allow camera access to add a photo to your gallery.");
+        return;
+      }
+      if (photoData) publishPhoto();
+      else drawCapture();
+    });
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeStudio();
+        closeViewerModal();
+      }
+    });
+  </script>
+</body>
+</html>
